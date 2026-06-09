@@ -47,7 +47,7 @@ const DriverRegisterStep2 = ({ onNext, onBack, onLogin }) => {
   const validate = () => {
     const newErrors = {}
 
-    if (!vehicleType) newErrors.vehicleType = 'Vehicle type is required'
+    if (!vehicleType) newErrors.vehicleType = 'Car brand is required'
     if (!licensePlate.trim()) newErrors.licensePlate = 'License plate is required'
     if (!vehicleColor) newErrors.vehicleColor = 'Vehicle color is required'
     if (!seats.trim()) newErrors.seats = 'Number of seats is required'
@@ -58,6 +58,8 @@ const DriverRegisterStep2 = ({ onNext, onBack, onLogin }) => {
 
   const handleContinue = () => {
     if (!validate()) return
+
+    // TODO: connect to backend — send vehicle info (vehicleType, licensePlate, vehicleColor, seats)
     onNext?.({ vehicleType, licensePlate, vehicleColor, seats })
   }
 
@@ -90,7 +92,7 @@ const DriverRegisterStep2 = ({ onNext, onBack, onLogin }) => {
               setErrors((e) => ({ ...e, vehicleType: null }))
             }}
           >
-            <Picker.Item label="Select vehicle type" value="" />
+            <Picker.Item label="Select car brand" value="" />
             {vehicleTypes.map((item) => (
               <Picker.Item key={item} label={item} value={item} />
             ))}
@@ -98,8 +100,8 @@ const DriverRegisterStep2 = ({ onNext, onBack, onLogin }) => {
         </View>
         {errors.vehicleType && <Text style={styles.error}>{errors.vehicleType}</Text>}
 
-        {/* License Plate */}
-        <Text style={styles.label}>License Plate</Text>
+        {/* License Plate Number */}
+        <Text style={styles.label}>License Plate Number</Text>
         <TextInput
           style={styles.input}
           placeholder="e.g. GA - 123 - 24"
@@ -129,7 +131,7 @@ const DriverRegisterStep2 = ({ onNext, onBack, onLogin }) => {
         </View>
         {errors.vehicleColor && <Text style={styles.error}>{errors.vehicleColor}</Text>}
 
-        {/* Seats */}
+        {/* Number of Seats */}
         <Text style={styles.label}>Number of Seats</Text>
         <TextInput
           style={styles.input}
@@ -143,7 +145,7 @@ const DriverRegisterStep2 = ({ onNext, onBack, onLogin }) => {
         />
         {errors.seats && <Text style={styles.error}>{errors.seats}</Text>}
 
-        {/* Button */}
+        {/* Continue Button */}
         <TouchableOpacity style={styles.button} onPress={handleContinue}>
           <Text style={styles.buttonText}>Continue →</Text>
         </TouchableOpacity>
