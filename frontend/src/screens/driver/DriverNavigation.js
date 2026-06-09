@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -13,7 +13,11 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps'
 
 const { width } = Dimensions.get('window')
 
-const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
+// Added onCancelNoPenalty explicitly to the decoupled screen props layout matrix
+const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, passenger }) => {
+  const [hasArrived, setHasArrived] = useState(false)
+  const [tripStarted, setTripStarted] = useState(false)
+  const [secondsWaiting, setSecondsWaiting] = useState(0)
   
   // TODO: Initialize native geolocation watchers and stream driver coordinates via WebSockets
   useEffect(() => {
@@ -24,42 +28,98 @@ const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
     }
   }, [])
 
-  // 1. Setup fallback coordinate properties to prevent layout breakages
+  // Live countdown tracker clock that triggers only when driver confirms arrival
+  useEffect(() => {
+    let interval = null
+    if (hasArrived && !tripStarted) {
+      interval = setInterval(() => {
+        setSecondsWaiting((prev) => prev + 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [hasArrived, tripStarted])
+
+  // Helper utility function to parse numerical seconds into standard MM:SS digital string layout
+  const formatTime = (totalSeconds) => {
+    const mins = Math.floor(totalSeconds / 60)
+    const secs = totalSeconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
   const currentPassenger = passenger || {
     id: 'req_lucy',
     name: 'Lucy Amankwa',
     rating: '4.9',
     pickup: 'Law Department',
+    destination: 'Engineering Block C',
     avatarEmoji: '👩‍🎓',
   }
 
-  // 2. Dynamic coordinates mapping based on the chosen passenger's unique campus location
-  const driverCoords = { latitude: 5.6506, longitude: -0.1915 } // Static driver origin layout node
-  let pickupCoords = { latitude: 5.6545, longitude: -0.1873 }  // Default Law Department coordinates
+  // Determine if the driver has waited past the 5-minute penalty-free limit threshold (300 seconds)
+  const isCancellationEligible = secondsWaiting >= 300
 
-  if (currentPassenger.id === 'req_kwame') {
-    pickupCoords = { latitude: 5.6582, longitude: -0.1889 }   // Balme Library coordinates
-  } else if (currentPassenger.id === 'req_aisha') {
-    pickupCoords = { latitude: 5.6455, longitude: -0.1842 }   // Dorms A coordinates
+  // 1. DYNAMIC COORDINATE SETUP BASES
+  const driverCoords = { latitude: 5.6506, longitude: -0.1915 } // Current mobile vehicle coordinate node
+  let activeTargetCoords = { latitude: 5.6545, longitude: -0.1873 } // Default pickup location node context
+
+  // Dynamically re-route coordinates based on current phase state
+  if (!tripStarted) {
+    // Phase 1 & 2: Heading to or waiting at Pickup Point
+    if (currentPassenger.id === 'req_kwame') {
+      activeTargetCoords = { latitude: 5.6582, longitude: -0.1889 } // Balme Library
+    } else if (currentPassenger.id === 'req_aisha') {
+      activeTargetCoords = { latitude: 5.6455, longitude: -0.1842 } // Dorms A
+    }
+  } else {
+    // Phase 3: Active Transit Journey heading straight to Drop-off target coordinates
+    if (currentPassenger.id === 'req_kwame') {
+      activeTargetCoords = { latitude: 5.6621, longitude: -0.1925 } // Gym / Sports Stadium
+    } else if (currentPassenger.id === 'req_aisha') {
+      activeTargetCoords = { latitude: 5.6492, longitude: -0.1898 } // Bush Canteen Cafe
+    } else {
+      activeTargetCoords = { latitude: 5.6595, longitude: -0.1852 } // Engineering Block C default node
+    }
   }
 
-  // 3. Re-calculate navigation bounding viewport region dynamically to focus on the target pickup spot
   const navigationRegion = {
-    latitude: (driverCoords.latitude + pickupCoords.latitude) / 2,
-    longitude: (driverCoords.longitude + pickupCoords.longitude) / 2,
-    latitudeDelta: Math.abs(driverCoords.latitude - pickupCoords.latitude) * 2 || 0.012,
-    longitudeDelta: Math.abs(driverCoords.longitude - pickupCoords.longitude) * 2 || 0.010,
+    latitude: (driverCoords.latitude + activeTargetCoords.latitude) / 2,
+    longitude: (driverCoords.longitude + activeTargetCoords.longitude) / 2,
+    latitudeDelta: Math.abs(driverCoords.latitude - activeTargetCoords.latitude) * 2 || 0.012,
+    longitudeDelta: Math.abs(driverCoords.longitude - activeTargetCoords.longitude) * 2 || 0.010,
   }
 
-  // 4. Generate custom path steps dynamically so lines match the selected student marker
+  // TODO: Replace math midpoint fallback with real coordinates array from Google Directions API fetch
   const routePathCoordinates = [
     driverCoords,
     { 
-      latitude: (driverCoords.latitude + pickupCoords.latitude) / 2 + 0.0005, 
-      longitude: (driverCoords.longitude + pickupCoords.longitude) / 2 - 0.0005 
+      latitude: (driverCoords.latitude + activeTargetCoords.latitude) / 2 + 0.0005, 
+      longitude: (driverCoords.longitude + activeTargetCoords.longitude) / 2 - 0.0005 
     },
-    pickupCoords,
+    activeTargetCoords,
   ]
+
+  const handlePrimaryAction = () => {
+    if (!hasArrived) {
+      // TODO: PUT HTTP request to update ride state to 'ARRIVED' and trigger passenger push notification
+      setHasArrived(true)
+    } else if (!tripStarted) {
+      // TODO: PUT HTTP request to update ride state to 'IN_TRANSIT' and stop waiting timer
+      setTripStarted(true)
+    } else {
+      // TODO: PUT HTTP request to clear active ride record, store transaction logs, and process payment
+      if (onArrive) onArrive()
+    }
+  }
+
+  const handleCancelRide = () => {
+    console.log('Cancellation workflow triggered.')
+    // Fires custom parent alert state machine hook instead of routing erroneously to TripSummary
+    if (onCancelNoPenalty) {
+      onCancelNoPenalty()
+    } else if (onBack) {
+      onBack() // Failsafe fallback anchor route
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -70,7 +130,9 @@ const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
         <TouchableOpacity onPress={onBack} activeOpacity={0.7} style={styles.headerButton}>
           <Text style={styles.headerIconText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitleText}>Navigating to Pickup</Text>
+        <Text style={styles.headerTitleText}>
+          {tripStarted ? 'In Transit to Drop-off' : hasArrived ? 'At Pickup Point' : 'Navigating to Pickup'}
+        </Text>
         <TouchableOpacity activeOpacity={0.7} style={styles.headerButton}>
           <Text style={styles.headerIconText}>⋮</Text>
         </TouchableOpacity>
@@ -84,28 +146,27 @@ const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
           region={navigationRegion}
           showsCompass={false}
         >
-          {/* Dotted Polyline now recalculates dynamically using routePathCoordinates! */}
           <Polyline
             coordinates={routePathCoordinates}
-            strokeColor="#2563EB"
+            strokeColor={tripStarted ? '#16A34A' : '#2563EB'} 
             strokeWidth={4}
             lineDashPattern={[6, 6]} 
           />
 
-          {/* Driver Marker Pin */}
           <Marker coordinate={driverCoords}>
             <View style={styles.driverLocatorCircle}>
               <Text style={styles.driverArrowIcon}>➔</Text>
             </View>
           </Marker>
 
-          {/* Pickup Marker now moves positions cleanly based on pickupCoords! */}
-          <Marker coordinate={pickupCoords}>
+          <Marker coordinate={activeTargetCoords}>
             <View style={styles.pickupMarkerContainer}>
-              <View style={styles.pickupLabelBadge}>
-                <Text style={styles.pickupLabelText}>PICKUP</Text>
+              <View style={[styles.pickupLabelBadge, tripStarted && styles.dropoffBadgeVariant]}>
+                <Text style={styles.pickupLabelText}>
+                  {tripStarted ? 'DROP-OFF' : 'PICKUP'}
+                </Text>
               </View>
-              <View style={styles.pickupPinNode}>
+              <View style={[styles.pickupPinNode, tripStarted && styles.dropoffPinVariant]}>
                 <View style={styles.pickupPinInnerNode} />
               </View>
             </View>
@@ -122,7 +183,7 @@ const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
         </View>
 
         {/* 3. BOTTOM RIDE INFORMATION BOTTOM SHEET SLIDER */}
-        <View style={styles.passengerPassengerSheet}>
+        <View style={styles.passengerSheet}>
           <View style={styles.profileMasterRow}>
             <View style={styles.avatarContainerMock}>
               <Text style={styles.avatarEmojiMock}>{currentPassenger.avatarEmoji}</Text>
@@ -135,12 +196,13 @@ const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
               <Text style={styles.passengerNameText}>{currentPassenger.name}</Text>
               <View style={styles.subLocationRow}>
                 <Text style={styles.locationArrowIcon}>➦</Text>
-                <Text style={styles.subLocationLabel} numberOfLines={1}>{currentPassenger.pickup}</Text>
+                <Text style={styles.subLocationLabel} numberOfLines={1}>
+                  {tripStarted ? currentPassenger.destination : currentPassenger.pickup}
+                </Text>
               </View>
             </View>
 
             <View style={styles.communicationButtonsGroup}>
-              {/* TODO: Integrate React Native Linking to trigger system phone dialer */}
               <TouchableOpacity 
                 style={styles.commsCircleButton} 
                 activeOpacity={0.7}
@@ -149,7 +211,6 @@ const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
                 <Text style={styles.commsIconEmoji}>📞</Text>
               </TouchableOpacity>
 
-              {/* TODO: Push messaging room layout context route here */}
               <TouchableOpacity 
                 style={styles.commsCircleButton} 
                 activeOpacity={0.7}
@@ -160,16 +221,60 @@ const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
             </View>
           </View>
 
-          <View style={styles.instructionNoteBanner}>
-            <Text style={styles.infoIconDecorator}>ⓘ</Text>
-            <Text style={styles.instructionTextContent}>
-              "Wait at the North entrance circular drive. Look for the blue backpack."
-            </Text>
-          </View>
+          {/* DYNAMIC TIMEOUT ELEMENT SECTION BLOCK */}
+          {tripStarted ? (
+            <View style={styles.transitTrackingBanner}>
+              <Text style={styles.transitIconEmoji}>🚀</Text>
+              <Text style={styles.transitTextContent}>
+                Driving to destination point. Follow road safety margins.
+              </Text>
+            </View>
+          ) : hasArrived ? (
+            <View style={[styles.timerTrackingBanner, isCancellationEligible && styles.timerAlertBannerVariant]}>
+              <Text style={styles.timerClockEmoji}>{isCancellationEligible ? '⚠️' : '⏱️'}</Text>
+              <Text style={[styles.timerTrackingLabel, isCancellationEligible && styles.timerAlertLabelVariant]}>
+                {isCancellationEligible ? (
+                  <Text>Passenger late. <Text style={styles.boldText}>Penalty-free cancellation active.</Text></Text>
+                ) : (
+                  <Text>Waiting for passenger: <Text style={styles.timerCountdownValue}>{formatTime(secondsWaiting)}</Text></Text>
+                )}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.instructionNoteBanner}>
+              <Text style={styles.infoIconDecorator}>ⓘ</Text>
+              <Text style={styles.instructionTextContent}>
+                "Wait at the North entrance circular drive. Look for the blue backpack."
+              </Text>
+            </View>
+          )}
 
-          <TouchableOpacity style={styles.arrivedButton} activeOpacity={0.85} onPress={onArrive}>
-            <Text style={styles.arrivedButtonText}>Arrived at Pickup  ✓</Text>
-          </TouchableOpacity>
+          {/* CONDITIONAL ACTION BUTTON STACK LAYOUT */}
+          <View style={styles.actionButtonsStack}>
+            {hasArrived && !tripStarted && isCancellationEligible && (
+              <TouchableOpacity 
+                style={styles.cancelRideButton} 
+                activeOpacity={0.85} 
+                onPress={handleCancelRide}
+              >
+                <Text style={styles.cancelButtonText}>Cancel Ride (No Penalty)</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity 
+              style={[
+                styles.primaryActionButton, 
+                hasArrived && styles.startTripButtonVariant,
+                tripStarted && styles.endTripButtonVariant
+              ]} 
+              activeOpacity={0.85} 
+              onPress={handlePrimaryAction}
+            >
+              <Text style={styles.primaryButtonText}>
+                {tripStarted ? 'End Trip  🏁' : hasArrived ? 'Start Trip  ➔' : 'Arrived at Pickup  ✓'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -199,6 +304,7 @@ const DriverNavigation = ({ onBack, onArrive, onChangeTab, passenger }) => {
 export default DriverNavigation
 
 const styles = StyleSheet.create({
+  // GLOBAL LAYOUT CORE CONTAINER RULES
   container: {
     flex: 1,
     backgroundColor: '#D1EAEB', 
@@ -259,6 +365,8 @@ const styles = StyleSheet.create({
   utilityIconEmoji: {
     fontSize: 18,
   },
+
+  // LIVE MAP GRAPHICS MARKERS LAYER
   driverLocatorCircle: {
     width: 36,
     height: 36,
@@ -292,6 +400,9 @@ const styles = StyleSheet.create({
     marginBottom: -2,
     zIndex: 10,
   },
+  dropoffBadgeVariant: {
+    backgroundColor: '#16A34A',
+  },
   pickupLabelText: {
     color: '#FFFFFF',
     fontSize: 9,
@@ -308,13 +419,18 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
+  dropoffPinVariant: {
+    backgroundColor: '#16A34A',
+  },
   pickupPinInnerNode: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#FFFFFF',
   },
-  passengerPassengerSheet: {
+
+  // PASSENGER RIDE INFORMATION BOTTOM SHEET MODULAR SYSTEM
+  passengerSheet: {
     position: 'absolute',
     bottom: 16,
     left: 16,
@@ -396,6 +512,8 @@ const styles = StyleSheet.create({
   commsIconEmoji: {
     fontSize: 16,
   },
+
+  // CONDITIONAL ROUTING AND TIMEOUT LAYOUT NOTIFICATION BANNERS
   instructionNoteBanner: {
     flexDirection: 'row',
     backgroundColor: '#F8FAFC',
@@ -420,7 +538,66 @@ const styles = StyleSheet.create({
     color: '#475569',
     lineHeight: 16,
   },
-  arrivedButton: {
+  timerTrackingBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF9C3',
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FEF08A',
+  },
+  timerAlertBannerVariant: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  timerClockEmoji: {
+    fontSize: 16,
+  },
+  timerTrackingLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#713F12',
+  },
+  timerAlertLabelVariant: {
+    color: '#991B1B',
+  },
+  timerCountdownValue: {
+    fontWeight: '800',
+    color: '#A16207',
+  },
+  transitTrackingBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#DCFCE7',
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  transitIconEmoji: {
+    fontSize: 16,
+  },
+  transitTextContent: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#166534',
+  },
+  boldText: {
+    fontWeight: '800',
+  },
+
+  // ACTION UTILITY SUB-STACK CONTROLLER INTERACTIVE BUTTONS
+  actionButtonsStack: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  primaryActionButton: {
     backgroundColor: '#2A437E',
     height: 54,
     borderRadius: 16,
@@ -432,11 +609,38 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  arrivedButtonText: {
+  cancelRideButton: {
+    backgroundColor: '#EF4444',
+    height: 50,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  startTripButtonVariant: {
+    backgroundColor: '#15803D',
+    shadowColor: '#15803D',
+  },
+  endTripButtonVariant: {
+    backgroundColor: '#DC2626',
+    shadowColor: '#DC2626',
+  },
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
   },
+  cancelButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  // BASE SYSTEM TAB DECORATION INTERFACES
   tabBarContainer: {
     flexDirection: 'row',
     height: 74,

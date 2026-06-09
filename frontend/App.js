@@ -21,6 +21,7 @@ import StudentHome from './src/screens/student/StudentHome'
 import DriverHome       from './src/screens/driver/DriverHome'
 import ActiveRequests   from './src/screens/driver/ActiveRequests'
 import DriverNavigation from './src/screens/driver/DriverNavigation'
+import TripSummary      from './src/screens/driver/TripSummary' 
 
 const RootNavigator = () => {
   const [screen, setScreen] = useState('splash')
@@ -30,6 +31,47 @@ const RootNavigator = () => {
   // Global persistence states to remember the selection across screens
   const [selectedRequestId, setSelectedRequestId] = useState('req_lucy')
   const [activeTripData, setActiveTripData] = useState(null)
+
+  // Real-Time Trip Performance Tracking States
+  const [tripStartTime, setTripStartTime] = useState(null)
+  const [finalCalculatedTrip, setFinalCalculatedTrip] = useState(null)
+
+  // 🚗 THE REQUESTS POOL STATE (Starts with 3 active requests)
+  const [requestsPool, setRequestsPool] = useState([
+    {
+      id: 'req_lucy',
+      name: 'Lucy Amankwa',
+      rating: '4.9',
+      type: 'Student',
+      pickup: 'Law Department',
+      destination: 'Engineering Block C',
+      distance: '2.5 km',
+      arrival: '3 mins',
+      avatarEmoji: '👩‍🎓',
+    },
+    {
+      id: 'req_kwame',
+      name: 'Kwame Mensah',
+      rating: '4.7',
+      type: 'Student',
+      pickup: 'Balme Library',
+      destination: 'Gym / Sports Stadium',
+      distance: '1.2 km',
+      arrival: '5 mins',
+      avatarEmoji: '👨‍🎓',
+    },
+    {
+      id: 'req_aisha',
+      name: 'Aisha Osei',
+      rating: '4.8',
+      type: 'Guest',
+      pickup: 'Dorms A / Volta',
+      destination: 'Bush Canteen Cafe',
+      distance: '0.8 km',
+      arrival: '2 mins',
+      avatarEmoji: '👩‍💼',
+    },
+  ])
 
   // 1. Splash Screen
   if (screen === 'splash') {
@@ -160,11 +202,13 @@ const RootNavigator = () => {
   if (screen === 'active-requests') {
     return (
       <ActiveRequests 
+        requests={requestsPool} // 💡 Pass the dynamic master pool state down as a prop
         selectedId={selectedRequestId}
         onSelectId={setSelectedRequestId}
         onBack={() => setScreen('home')} 
         onAcceptRide={(acceptedPassenger) => {
           setActiveTripData(acceptedPassenger)
+          setTripStartTime(Date.now()) 
           setScreen('driver-navigation')
         }}
         onChangeTab={(targetTab) => {
@@ -181,12 +225,63 @@ const RootNavigator = () => {
         passenger={activeTripData}
         onBack={() => setScreen('active-requests')}
         onArrive={() => {
-          console.log('Driver confirmed arrival for:', activeTripData?.name)
-          setScreen('home') 
+          console.log('Driver confirmed destination drop-off completed.')
+          
+          const endTime = Date.now()
+          const totalElapsedMs = endTime - tripStartTime
+          const durationCalculated = tripStartTime ? Math.round(totalElapsedMs / 60000) : 12
+
+          let durationTextValue = '12 minutes'
+          let distanceTextValue = '4.2 km'
+
+          if (durationCalculated > 0) {
+            durationTextValue = `${durationCalculated} ${durationCalculated === 1 ? 'minute' : 'minutes'}`
+            distanceTextValue = `${(durationCalculated * 0.35).toFixed(1)} km`
+          }
+
+          const dynamicTripPayload = {
+            driverName: 'Kwame', 
+            pickupLocation: activeTripData?.pickup || 'Engineering Block C',
+            destinationLocation: activeTripData?.destination || 'Student Union North',
+            durationText: durationTextValue,
+            distanceText: distanceTextValue, 
+          }
+
+          setFinalCalculatedTrip(dynamicTripPayload)
+
+          // ✂️ REMOVE ONLY THE PASSED TRIP INDIVIDUAL FROM THE MAIN DISPATCH POOL
+          if (activeTripData) {
+            setRequestsPool(currentPool => 
+              currentPool.filter(request => request.id !== activeTripData.id)
+            )
+          }
+
+          // TODO: BACKEND INTEGRATION
+          // send POST/PUT request to server (e.g., /api/rides/complete) with final location matrices
+          setScreen('trip-summary') 
         }}
         onChangeTab={(targetTab) => {
           if (targetTab === 'home') setScreen('home')
           if (targetTab === 'active-requests') setScreen('active-requests')
+        }}
+      />
+    )
+  }
+
+  // 14. Post-Trip Physical Cash Receipt Summary Interface
+  if (screen === 'trip-summary') {
+    return (
+      <TripSummary
+        tripData={finalCalculatedTrip} 
+        onDismiss={() => {
+          setActiveTripData(null)
+          setFinalCalculatedTrip(null)
+          setTripStartTime(null)
+          setScreen('home')
+        }}
+        onChangeTab={(targetTab) => {
+          if (targetTab === 'home') setScreen('home')
+          if (targetTab === 'trips') setScreen('active-requests')
         }}
       />
     )
