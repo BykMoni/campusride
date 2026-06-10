@@ -10,16 +10,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps'
+import { MaterialCommunityIcons } from '@expo/vector-icons' // 🌟 IMPORTED NATIVE PLUGIN VECTOR ICONS
 
 const { width } = Dimensions.get('window')
 
-// Added onCancelNoPenalty explicitly to the decoupled screen props layout matrix
 const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, passenger }) => {
   const [hasArrived, setHasArrived] = useState(false)
   const [tripStarted, setTripStarted] = useState(false)
   const [secondsWaiting, setSecondsWaiting] = useState(0)
   
-  // TODO: Initialize native geolocation watchers and stream driver coordinates via WebSockets
+  // 💡 TODO: BACKEND INTEGRATION — Initialize native geolocation watchers and stream driver coordinates via WebSockets
+  // Endpoint/Protocol: wss://your-backend.university.edu/api/telemetry/driver
   useEffect(() => {
     console.log('Driver GPS location tracking stream initialized.')
 
@@ -88,7 +89,8 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
     longitudeDelta: Math.abs(driverCoords.longitude - activeTargetCoords.longitude) * 2 || 0.010,
   }
 
-  // TODO: Replace math midpoint fallback with real coordinates array from Google Directions API fetch
+  // 💡 TODO: BACKEND INTEGRATION — Replace math midpoint fallback with real coordinates array from Google Directions API fetch
+  // Endpoint: GET https://maps.googleapis.com/maps/api/directions/json
   const routePathCoordinates = [
     driverCoords,
     { 
@@ -100,24 +102,28 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
 
   const handlePrimaryAction = () => {
     if (!hasArrived) {
-      // TODO: PUT HTTP request to update ride state to 'ARRIVED' and trigger passenger push notification
+      // 💡 TODO: BACKEND INTEGRATION — PUT HTTP request to update ride state to 'ARRIVED' and trigger passenger push notification
+      // Endpoint: PUT /api/rides/${currentPassenger.id}/arrived
       setHasArrived(true)
     } else if (!tripStarted) {
-      // TODO: PUT HTTP request to update ride state to 'IN_TRANSIT' and stop waiting timer
+      // 💡 TODO: BACKEND INTEGRATION — PUT HTTP request to update ride state to 'IN_TRANSIT' and stop waiting timer
+      // Endpoint: PUT /api/rides/${currentPassenger.id}/start
       setTripStarted(true)
     } else {
-      // TODO: PUT HTTP request to clear active ride record, store transaction logs, and process payment
+      // 💡 TODO: BACKEND INTEGRATION — PUT HTTP request to clear active ride record, store transaction logs, and process payment
+      // Endpoint: PUT /api/rides/${currentPassenger.id}/complete
       if (onArrive) onArrive()
     }
   }
 
   const handleCancelRide = () => {
     console.log('Cancellation workflow triggered.')
-    // Fires custom parent alert state machine hook instead of routing erroneously to TripSummary
+    // 💡 TODO: BACKEND INTEGRATION — POST HTTP request to clear active ride status with late passenger penalty exemption flags
+    // Endpoint: POST /api/rides/${currentPassenger.id}/cancel-no-penalty
     if (onCancelNoPenalty) {
       onCancelNoPenalty()
     } else if (onBack) {
-      onBack() // Failsafe fallback anchor route
+      onBack() 
     }
   }
 
@@ -128,13 +134,13 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
       {/* 1. TOP HEADER NAVIGATION BAR */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7} style={styles.headerButton}>
-          <Text style={styles.headerIconText}>←</Text>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#1E3A8A" />
         </TouchableOpacity>
         <Text style={styles.headerTitleText}>
           {tripStarted ? 'In Transit to Drop-off' : hasArrived ? 'At Pickup Point' : 'Navigating to Pickup'}
         </Text>
         <TouchableOpacity activeOpacity={0.7} style={styles.headerButton}>
-          <Text style={styles.headerIconText}>⋮</Text>
+          <MaterialCommunityIcons name="dots-vertical" size={24} color="#1E3A8A" />
         </TouchableOpacity>
       </View>
 
@@ -155,7 +161,7 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
 
           <Marker coordinate={driverCoords}>
             <View style={styles.driverLocatorCircle}>
-              <Text style={styles.driverArrowIcon}>➔</Text>
+              <MaterialCommunityIcons name="navigation" size={16} color="#FFFFFF" style={styles.driverNavIcon} />
             </View>
           </Marker>
 
@@ -175,10 +181,10 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
 
         <View style={styles.floatingControlsStack}>
           <TouchableOpacity style={styles.mapUtilityButton} activeOpacity={0.8}>
-            <Text style={styles.utilityIconEmoji}>🎯</Text>
+            <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#1F2937" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.mapUtilityButton} activeOpacity={0.8}>
-            <Text style={styles.utilityIconEmoji}>🥞</Text>
+            <MaterialCommunityIcons name="layers-outline" size={20} color="#1F2937" />
           </TouchableOpacity>
         </View>
 
@@ -195,7 +201,7 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
             <View style={styles.identityTextBlock}>
               <Text style={styles.passengerNameText}>{currentPassenger.name}</Text>
               <View style={styles.subLocationRow}>
-                <Text style={styles.locationArrowIcon}>➦</Text>
+                <MaterialCommunityIcons name="arrow-top-right-alignment" size={14} color="#6B7280" />
                 <Text style={styles.subLocationLabel} numberOfLines={1}>
                   {tripStarted ? currentPassenger.destination : currentPassenger.pickup}
                 </Text>
@@ -203,20 +209,22 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
             </View>
 
             <View style={styles.communicationButtonsGroup}>
+              {/* 💡 TODO: BACKEND INTEGRATION — Hook local string parameter dynamically into the device dialer interface */}
               <TouchableOpacity 
                 style={styles.commsCircleButton} 
                 activeOpacity={0.7}
                 onPress={() => console.log('Native dialer initiated.')}
               >
-                <Text style={styles.commsIconEmoji}>📞</Text>
+                <MaterialCommunityIcons name="phone" size={18} color="#1F2937" />
               </TouchableOpacity>
 
+              {/* 💡 TODO: BACKEND INTEGRATION — Route to dedicated internal workspace messages stack channel */}
               <TouchableOpacity 
                 style={styles.commsCircleButton} 
                 activeOpacity={0.7}
                 onPress={() => console.log('Internal messaging portal opened.')}
               >
-                <Text style={styles.commsIconEmoji}>💬</Text>
+                <MaterialCommunityIcons name="message-text" size={18} color="#1F2937" />
               </TouchableOpacity>
             </View>
           </View>
@@ -224,14 +232,18 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
           {/* DYNAMIC TIMEOUT ELEMENT SECTION BLOCK */}
           {tripStarted ? (
             <View style={styles.transitTrackingBanner}>
-              <Text style={styles.transitIconEmoji}>🚀</Text>
+              <MaterialCommunityIcons name="rocket-launch" size={16} color="#166534" />
               <Text style={styles.transitTextContent}>
                 Driving to destination point. Follow road safety margins.
               </Text>
             </View>
           ) : hasArrived ? (
             <View style={[styles.timerTrackingBanner, isCancellationEligible && styles.timerAlertBannerVariant]}>
-              <Text style={styles.timerClockEmoji}>{isCancellationEligible ? '⚠️' : '⏱️'}</Text>
+              <MaterialCommunityIcons 
+                name={isCancellationEligible ? "alert-circle" : "clock-outline"} 
+                size={16} 
+                color={isCancellationEligible ? "#991B1B" : "#713F12"} 
+              />
               <Text style={[styles.timerTrackingLabel, isCancellationEligible && styles.timerAlertLabelVariant]}>
                 {isCancellationEligible ? (
                   <Text>Passenger late. <Text style={styles.boldText}>Penalty-free cancellation active.</Text></Text>
@@ -242,7 +254,7 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
             </View>
           ) : (
             <View style={styles.instructionNoteBanner}>
-              <Text style={styles.infoIconDecorator}>ⓘ</Text>
+              <MaterialCommunityIcons name="information" size={16} color="#3B82F6" />
               <Text style={styles.instructionTextContent}>
                 "Wait at the North entrance circular drive. Look for the blue backpack."
               </Text>
@@ -281,19 +293,19 @@ const DriverNavigation = ({ onBack, onArrive, onCancelNoPenalty, onChangeTab, pa
       {/* 4. BASE SYSTEM DECORATOR NAVIGATION APP TABS BAR */}
       <View style={styles.tabBarContainer}>
         <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab && onChangeTab('home')} activeOpacity={0.7}>
-          <Text style={styles.tabIconInactive}>🏠</Text>
+          <MaterialCommunityIcons name="home-outline" size={24} color="#94A3B8" />
           <Text style={styles.tabLabelInactive}>Home</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab('trips')} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab && onChangeTab('trips')} activeOpacity={0.7}>
           <View style={styles.activeTabIconBackground}>
-            <Text style={styles.tabIconActive}>🔀</Text>
+            <MaterialCommunityIcons name="car-multiple" size={24} color="#1E3A8A" />
           </View>
           <Text style={styles.tabLabelActive}>Trips</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tabItem} onPress={() => console.log('Profile')} activeOpacity={0.7}>
-          <Text style={styles.tabIconInactive}>👤</Text>
+        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab && onChangeTab('profile')} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="account-circle-outline" size={24} color="#94A3B8" />
           <Text style={styles.tabLabelInactive}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -328,11 +340,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerIconText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E3A8A',
-  },
   headerTitleText: {
     fontSize: 16,
     fontWeight: '700',
@@ -362,9 +369,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  utilityIconEmoji: {
-    fontSize: 18,
-  },
 
   // LIVE MAP GRAPHICS MARKERS LAYER
   driverLocatorCircle: {
@@ -382,11 +386,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  driverArrowIcon: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    transform: [{ rotate: '-45deg' }], 
+  driverNavIcon: {
+    transform: [{ rotate: '45deg' }],
   },
   pickupMarkerContainer: {
     alignItems: 'center',
@@ -487,10 +488,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  locationArrowIcon: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
   subLocationLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -509,9 +506,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  commsIconEmoji: {
-    fontSize: 16,
-  },
 
   // CONDITIONAL ROUTING AND TIMEOUT LAYOUT NOTIFICATION BANNERS
   instructionNoteBanner: {
@@ -524,12 +518,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-  },
-  infoIconDecorator: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#3B82F6',
-    marginTop: 1,
   },
   instructionTextContent: {
     flex: 1,
@@ -553,9 +541,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
     borderColor: '#FCA5A5',
   },
-  timerClockEmoji: {
-    fontSize: 16,
-  },
   timerTrackingLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -578,9 +563,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#BBF7D0',
-  },
-  transitIconEmoji: {
-    fontSize: 16,
   },
   transitTextContent: {
     flex: 1,
@@ -660,17 +642,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 2,
   },
-  tabIconActive: {
-    fontSize: 18,
-  },
   tabLabelActive: {
     fontSize: 11,
     color: '#1E3A8A',
     fontWeight: '700',
-  },
-  tabIconInactive: {
-    fontSize: 18,
-    opacity: 0.4,
   },
   tabLabelInactive: {
     fontSize: 11,

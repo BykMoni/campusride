@@ -11,10 +11,10 @@ import {
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaView } from 'react-native-safe-area-context' 
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 const { width, height } = Dimensions.get('window')
 
-// Destructured onChangeTab alongside the other global navigator hooks
 const DriverHome = ({ onLogout, onViewRequests, onChangeTab }) => {
   const [isOnline, setIsOnline] = useState(true)
 
@@ -47,7 +47,7 @@ const DriverHome = ({ onLogout, onViewRequests, onChangeTab }) => {
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.notificationBtn} activeOpacity={0.7}>
-            <Text style={styles.notificationIcon}>🔔</Text>
+            <MaterialCommunityIcons name="bell-outline" size={20} color="#1F2937" />
           </TouchableOpacity>
         </View>
       </View>
@@ -75,6 +75,7 @@ const DriverHome = ({ onLogout, onViewRequests, onChangeTab }) => {
 
       {/* 3. LIVE MAP VIEWPORT AREA */}
       <View style={styles.mapViewportContainer}>
+        {/* 💡 TODO: BACKEND INTEGRATION — Initialize background polling or server sent events (SSE) to update surrounding active student coordinates */}
         <MapView
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : null}
           style={StyleSheet.absoluteFillObject}
@@ -84,6 +85,7 @@ const DriverHome = ({ onLogout, onViewRequests, onChangeTab }) => {
         >
           {isOnline && (
             <>
+              {/* 💡 TODO: BACKEND INTEGRATION — Switch static driver marker coordinates with live geolocation device tracking state */}
               <Marker coordinate={{ latitude: 5.6506, longitude: -0.1873 }}>
                 <View style={styles.driverPulseOuter}>
                   <View style={styles.driverPulseInner} />
@@ -97,7 +99,7 @@ const DriverHome = ({ onLogout, onViewRequests, onChangeTab }) => {
                   title={request.label}
                 >
                   <View style={styles.passengerPin}>
-                    <Text style={styles.pinIcon}>👤</Text>
+                    <MaterialCommunityIcons name="account" size={14} color="#FFFFFF" />
                   </View>
                 </Marker>
               ))}
@@ -125,10 +127,12 @@ const DriverHome = ({ onLogout, onViewRequests, onChangeTab }) => {
               </Text>
             </View>
             <View style={styles.drawerIconSquare}>
-              <Text style={styles.drawerSquareRouteIcon}>🔀</Text>
+              <MaterialCommunityIcons name="routes" size={22} color="#1E3A8A" />
             </View>
           </View>
 
+          {/* 💡 TODO: BACKEND INTEGRATION — Pull analytics aggregate history payloads to replace static driving matrices */}
+          {/* Endpoint target: GET /api/drivers/analytics-summary */}
           <Text style={styles.metricsTextLine}>
             Trips today: <Text style={styles.metricsBoldValue}>5</Text> • Total trips: <Text style={styles.metricsBoldValue}>42</Text>
           </Text>
@@ -146,23 +150,27 @@ const DriverHome = ({ onLogout, onViewRequests, onChangeTab }) => {
 
       {/* 5. APP BASE SYSTEM TAB NAV BAR COMPONENT */}
       <View style={styles.tabBarContainer}>
-        {/* Home Tab - Explicitly passing 'home' up to the root state context */}
+        {/* Home Tab */}
         <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab('home')} activeOpacity={0.7}>
           <View style={[styles.tabIconBackground, styles.activeTabIconBackground]}>
-            <Text style={[styles.tabIcon, styles.activeTabIconText]}>🏠</Text>
+            <MaterialCommunityIcons name="home" size={24} color="#1E3A8A" />
           </View>
           <Text style={[styles.tabLabelText, styles.activeTabLabelText]}>Home</Text>
         </TouchableOpacity>
 
-        {/* Trips Tab - Triggers navigation link callback to ActiveRequests */}
+        {/* Trips Tab */}
         <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab('trips')} activeOpacity={0.7}>
-          <Text style={styles.tabIcon}>🔀</Text>
+          <View style={styles.tabIconBackground}>
+            <MaterialCommunityIcons name="car-multiple" size={24} color="#94A3B8" />
+          </View>
           <Text style={styles.tabLabelText}>Trips</Text>
         </TouchableOpacity>
 
         {/* Profile Tab */}
-        <TouchableOpacity style={styles.tabItem} onPress={() => console.log('Profile')} activeOpacity={0.7}>
-          <Text style={styles.tabIcon}>👤</Text>
+        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab('profile')} activeOpacity={0.7}>
+          <View style={styles.tabIconBackground}>
+            <MaterialCommunityIcons name="account-circle-outline" size={24} color="#94A3B8" />
+          </View>
           <Text style={styles.tabLabelText}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -222,9 +230,8 @@ const styles = StyleSheet.create({
   },
   notificationBtn: {
     padding: 2,
-  },
-  notificationIcon: {
-    fontSize: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   toggleCardContainer: {
     paddingHorizontal: 20,
@@ -299,10 +306,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  pinIcon: {
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
   driverPulseOuter: {
     width: 28,
     height: 28,
@@ -368,10 +371,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  drawerSquareRouteIcon: {
-    fontSize: 18,
-    color: '#1E3A8A',
-  },
   metricsTextLine: {
     fontSize: 12,
     color: '#94A3B8',
@@ -415,16 +414,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 2,
     backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeTabIconBackground: {
     backgroundColor: '#EFF6FF',
-  },
-  tabIcon: {
-    fontSize: 18,
-    opacity: 0.4,
-  },
-  activeTabIconText: {
-    opacity: 1,
   },
   tabLabelText: {
     fontSize: 11,

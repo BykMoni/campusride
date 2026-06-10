@@ -2,12 +2,14 @@ import React from 'react'
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
+  ScrollView,
   Dimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
+import { MaterialCommunityIcons } from '@expo/vector-icons' // 🌟 IMPORTED NATIVE PLUGIN VECTOR ICONS
 
 const { width } = Dimensions.get('window')
 
@@ -34,7 +36,7 @@ const TripSummary = ({ onDismiss, onChangeTab, tripData }) => {
           activeOpacity={0.7} 
           style={styles.headerButton}
         >
-          <Text style={styles.headerIconText}>←</Text>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#1E3A8A" />
         </TouchableOpacity>
         <Text style={styles.headerTitleText}>Trip Summary</Text>
         <View style={styles.headerButtonPlaceholder} />
@@ -45,7 +47,7 @@ const TripSummary = ({ onDismiss, onChangeTab, tripData }) => {
         
         {/* Animated Green Checkmark Vector Circle Badge */}
         <View style={styles.successCircleContainer}>
-          <Text style={styles.successCheckmarkIcon}>✓</Text>
+          <MaterialCommunityIcons name="check" size={48} color="#FFFFFF" />
         </View>
 
         <Text style={styles.tripCompletedHeadingText}>Trip Completed</Text>
@@ -68,7 +70,7 @@ const TripSummary = ({ onDismiss, onChangeTab, tripData }) => {
               
               {/* Destination Pin - Green Ring Enclosing Your 🏁 Finish Flag */}
               <View style={styles.dropoffOuterCirclePin}>
-                <Text style={styles.flagEmojiMarker}>🏁</Text>
+                <MaterialCommunityIcons name="flag-checkered" size={12} color="#2E7D32" />
               </View>
             </View>
 
@@ -94,12 +96,16 @@ const TripSummary = ({ onDismiss, onChangeTab, tripData }) => {
           {/* Metrics Distribution Row Wrapper (Aligned Perfectly Side-by-Side) */}
           <View style={styles.metricsDistributionGridRow}>
             <View style={styles.metricDataCellUnit}>
-              <Text style={styles.metricLabelCategory}>⏱️ Duration</Text>
+              <Text style={styles.metricLabelCategory}>
+                <MaterialCommunityIcons name="clock-outline" size={16} color="#94A3B8" /> Duration
+              </Text>
               <Text style={styles.metricValueHeadlineText}>{activeSummary.durationText}</Text>
             </View>
 
             <View style={styles.metricDataCellUnit}>
-              <Text style={styles.metricLabelCategory}>📍 Distance</Text>
+              <Text style={styles.metricLabelCategory}>
+                <MaterialCommunityIcons name="map-marker-outline" size={16} color="#94A3B8" /> Distance
+              </Text>
               <Text style={styles.metricValueHeadlineText}>{activeSummary.distanceText}</Text>
             </View>
           </View>
@@ -113,19 +119,19 @@ const TripSummary = ({ onDismiss, onChangeTab, tripData }) => {
       {/* 4. BASE SYSTEM TAB BAR SYSTEM BAR */}
       <View style={styles.tabBarContainer}>
         <TouchableOpacity style={styles.tabItem} onPress={onDismiss} activeOpacity={0.7}>
-          <Text style={styles.tabIconInactive}>🏠</Text>
+          <MaterialCommunityIcons name="home-outline" size={24} color="#94A3B8" />
           <Text style={styles.tabLabelInactive}>Home</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab && onChangeTab('trips')} activeOpacity={0.7}>
           <View style={styles.activeTabIconBackground}>
-            <Text style={styles.tabIconActive}>🔀</Text>
+            <MaterialCommunityIcons name="car-multiple" size={24} color="#1E3A8A" />
           </View>
           <Text style={styles.tabLabelActive}>Trips</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tabItem} onPress={() => console.log('Profile')} activeOpacity={0.7}>
-          <Text style={styles.tabIconInactive}>👤</Text>
+        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab && onChangeTab('profile')} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="account-circle-outline" size={24} color="#94A3B8" />
           <Text style={styles.tabLabelInactive}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -161,11 +167,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
   },
-  headerIconText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#1E3A8A',
-  },
   headerTitleText: {
     fontSize: 18,
     fontWeight: '700',
@@ -194,11 +195,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 6,
-  },
-  successCheckmarkIcon: {
-    color: '#FFFFFF',
-    fontSize: 42,
-    fontWeight: 'bold',
   },
   tripCompletedHeadingText: {
     fontSize: 32,
@@ -272,10 +268,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#2E7D32',
   },
-  flagEmojiMarker: {
-    fontSize: 12, 
-    lineHeight: 14,
-  },
   routeLabelsTextColumn: {
     flex: 1,
     gap: 20,
@@ -318,6 +310,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#94A3B8',
     marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   metricValueHeadlineText: {
     fontSize: 18,
@@ -353,17 +348,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 2,
   },
-  tabIconActive: {
-    fontSize: 18,
-  },
   tabLabelActive: {
     fontSize: 11,
     color: '#1E3A8A',
     fontWeight: '700',
-  },
-  tabIconInactive: {
-    fontSize: 18,
-    opacity: 0.4,
   },
   tabLabelInactive: {
     fontSize: 11,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Alert } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthProvider, useAuth } from './src/context/AuthContext'
 
@@ -22,6 +23,7 @@ import DriverHome       from './src/screens/driver/DriverHome'
 import ActiveRequests   from './src/screens/driver/ActiveRequests'
 import DriverNavigation from './src/screens/driver/DriverNavigation'
 import TripSummary      from './src/screens/driver/TripSummary' 
+import DriverProfile    from './src/screens/driver/DriverProfile' 
 
 const RootNavigator = () => {
   const [screen, setScreen] = useState('splash')
@@ -193,6 +195,7 @@ const RootNavigator = () => {
         onViewRequests={() => setScreen('active-requests')}
         onChangeTab={(targetTab) => {
           if (targetTab === 'trips') setScreen('active-requests')
+          if (targetTab === 'profile') setScreen('driver-profile')
         }}
       />
     )
@@ -202,17 +205,22 @@ const RootNavigator = () => {
   if (screen === 'active-requests') {
     return (
       <ActiveRequests 
-        requests={requestsPool} // 💡 Pass the dynamic master pool state down as a prop
+        requests={requestsPool} 
         selectedId={selectedRequestId}
         onSelectId={setSelectedRequestId}
         onBack={() => setScreen('home')} 
         onAcceptRide={(acceptedPassenger) => {
           setActiveTripData(acceptedPassenger)
           setTripStartTime(Date.now()) 
+          
+          // TODO: BACKEND INTEGRATION
+          // send POST request to server (e.g., /api/rides/accept) to update status to 'ACCEPTED'
+          
           setScreen('driver-navigation')
         }}
         onChangeTab={(targetTab) => {
           if (targetTab === 'home') setScreen('home')
+          if (targetTab === 'profile') setScreen('driver-profile')
         }}
       />
     )
@@ -249,7 +257,6 @@ const RootNavigator = () => {
 
           setFinalCalculatedTrip(dynamicTripPayload)
 
-          // ✂️ REMOVE ONLY THE PASSED TRIP INDIVIDUAL FROM THE MAIN DISPATCH POOL
           if (activeTripData) {
             setRequestsPool(currentPool => 
               currentPool.filter(request => request.id !== activeTripData.id)
@@ -257,12 +264,40 @@ const RootNavigator = () => {
           }
 
           // TODO: BACKEND INTEGRATION
-          // send POST/PUT request to server (e.g., /api/rides/complete) with final location matrices
+          // send POST request to server (e.g., /api/rides/complete) with calculated duration matrices
+          
           setScreen('trip-summary') 
+        }}
+        onCancelNoPenalty={() => {
+          Alert.alert(
+            "Trip Canceled",
+            `No-show recorded for ${activeTripData?.name || 'Passenger'}. Your driver score is unaffected.`,
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  if (activeTripData) {
+                    setRequestsPool(currentPool => 
+                      currentPool.filter(request => request.id !== activeTripData.id)
+                    )
+                  }
+                  
+                  // TODO: BACKEND INTEGRATION
+                  // send POST request to server (e.g., /api/rides/cancel-no-penalty) to clear ride status
+                  
+                  setActiveTripData(null)
+                  setTripStartTime(null)
+                  setScreen('active-requests')
+                }
+              }
+            ],
+            { cancelable: false }
+          )
         }}
         onChangeTab={(targetTab) => {
           if (targetTab === 'home') setScreen('home')
           if (targetTab === 'active-requests') setScreen('active-requests')
+          if (targetTab === 'profile') setScreen('driver-profile')
         }}
       />
     )
@@ -282,6 +317,26 @@ const RootNavigator = () => {
         onChangeTab={(targetTab) => {
           if (targetTab === 'home') setScreen('home')
           if (targetTab === 'trips') setScreen('active-requests')
+          if (targetTab === 'profile') setScreen('driver-profile')
+        }}
+      />
+    )
+  }
+
+  // 15. Driver Settings and Analytics Profile Workspace Screen Frame
+  if (screen === 'driver-profile') {
+    return (
+      <DriverProfile
+        onLogout={() => {
+          // TODO: BACKEND INTEGRATION
+          // Clear token storage arrays from AsyncStorage on session destruction
+          logout()
+          setScreen('role-selection')
+        }}
+        onNavigate={(targetTab) => {
+          if (targetTab === 'home') setScreen('home')
+          if (targetTab === 'active-requests') setScreen('active-requests')
+          if (targetTab === 'profile') setScreen('driver-profile')
         }}
       />
     )
