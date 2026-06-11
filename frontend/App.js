@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Alert } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthProvider, useAuth } from './src/context/AuthContext'
@@ -19,11 +19,16 @@ import DriverRegisterSuccess from './src/screens/auth/DriverRegisterSuccess'
 import StudentHome from './src/screens/student/StudentHome'
 
 // Driver screens
-import DriverHome       from './src/screens/driver/DriverHome'
-import ActiveRequests   from './src/screens/driver/ActiveRequests'
-import DriverNavigation from './src/screens/driver/DriverNavigation'
-import TripSummary      from './src/screens/driver/TripSummary' 
-import DriverProfile    from './src/screens/driver/DriverProfile' 
+import DriverHome         from './src/screens/driver/DriverHome'
+import ActiveRequests     from './src/screens/driver/ActiveRequests'
+import DriverNavigation   from './src/screens/driver/DriverNavigation'
+import TripSummary        from './src/screens/driver/TripSummary' 
+import DriverProfile      from './src/screens/driver/DriverProfile' 
+import RideHistory        from './src/screens/driver/RideHistory'
+import DriverNotis        from './src/screens/driver/DriverNotis'
+import DriverSupport      from './src/screens/driver/DriverSupport' 
+import EditDriverProfile  from './src/screens/driver/EditDriverProfile'
+import DriverSettings     from './src/screens/driver/DriverSettings' // 🌟 IMPORTED NEW APP SETTINGS MODULE SCREEN
 
 const RootNavigator = () => {
   const [screen, setScreen] = useState('splash')
@@ -37,6 +42,13 @@ const RootNavigator = () => {
   // Real-Time Trip Performance Tracking States
   const [tripStartTime, setTripStartTime] = useState(null)
   const [finalCalculatedTrip, setFinalCalculatedTrip] = useState(null)
+
+  // 🚗 LOCAL STATE DRIVER LEDGER: Holds live edits seamlessly across views without database lag
+  const [driverProfileData, setDriverProfileData] = useState({
+    fullName: 'Alex Johnson',
+    email: 'alex.j@university.edu',
+    avatarUri: null,
+  })
 
   // 🚗 THE REQUESTS POOL STATE (Starts with 3 active requests)
   const [requestsPool, setRequestsPool] = useState([
@@ -327,9 +339,87 @@ const RootNavigator = () => {
   if (screen === 'driver-profile') {
     return (
       <DriverProfile
+        driverData={driverProfileData} // 🌟 Injects state memory directly into fields fallback
         onLogout={() => {
-          // TODO: BACKEND INTEGRATION
-          // Clear token storage arrays from AsyncStorage on session destruction
+          logout()
+          setScreen('role-selection')
+        }}
+        onNavigate={(targetTab) => {
+          if (targetTab === 'home') setScreen('home')
+          if (targetTab === 'active-requests') setScreen('active-requests')
+          if (targetTab === 'profile') setScreen('driver-profile')
+          if (targetTab === 'ride-history') setScreen('ride-history')
+          if (targetTab === 'notifications') setScreen('driver-notis')
+          if (targetTab === 'help-support') setScreen('driver-support')
+          if (targetTab === 'settings') setScreen('edit-driver-profile') 
+          if (targetTab === 'app-settings') setScreen('app-settings') // 🌟 DYNAMIC APP-SETTINGS MENU CARD ACTION LINKED HERE
+        }}
+      />
+    )
+  }
+
+  // 16. Ride History Archive Module
+  if (screen === 'ride-history') {
+    return (
+      <RideHistory
+        onBack={() => setScreen('driver-profile')}
+        onChangeTab={(targetTab) => {
+          if (targetTab === 'home') setScreen('home')
+          if (targetTab === 'trips') setScreen('active-requests')
+          if (targetTab === 'profile') setScreen('driver-profile')
+        }}
+      />
+    )
+  }
+
+  // 17. Standalone Driver Notifications Module
+  if (screen === 'driver-notis') {
+    return (
+      <DriverNotis
+        onBack={() => setScreen('driver-profile')}
+        onChangeTab={(targetTab) => {
+          if (targetTab === 'home') setScreen('home')
+          if (targetTab === 'trips') setScreen('active-requests') 
+          if (targetTab === 'profile') setScreen('driver-profile')
+        }}
+      />
+    )
+  }
+
+  // 18. Standalone Driver Help & Support Module
+  if (screen === 'driver-support') {
+    return (
+      <DriverSupport
+        onBack={() => setScreen('driver-profile')}
+        onChangeTab={(targetTab) => {
+          if (targetTab === 'home') setScreen('home')
+          if (targetTab === 'trips') setScreen('active-requests') 
+          if (targetTab === 'profile') setScreen('driver-profile')
+        }}
+      />
+    )
+  }
+
+  // 19. Standalone Driver Edit Profile Module
+  if (screen === 'edit-driver-profile') {
+    return (
+      <EditDriverProfile
+        onBack={() => setScreen('driver-profile')}
+        onChangeTab={(targetTab) => {
+          if (targetTab === 'home') setScreen('home')
+          if (targetTab === 'trips') setScreen('active-requests') 
+          if (targetTab === 'profile') setScreen('driver-profile')
+        }}
+      />
+    )
+  }
+
+  // 20. Standalone Driver App Settings Module
+  if (screen === 'app-settings') {
+    return (
+      <DriverSettings
+        onBack={() => setScreen('driver-profile')}
+        onLogout={() => {
           logout()
           setScreen('role-selection')
         }}
@@ -353,4 +443,4 @@ export default function App() {
       </AuthProvider>
     </SafeAreaProvider>
   )
-}
+} 

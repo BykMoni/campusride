@@ -16,9 +16,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 // import { useAuth } from '../../context/AuthContext'
 // import AsyncStorage from '@react-native-async-storage/async-storage'
 
-// 💡 TODO: BACKEND INTEGRATION — Import image picker module to handle profile avatar media uploads
-// import * as ImagePicker from 'expo-image-picker'
-
 const { width } = Dimensions.get('window')
 
 // Verified badge icon
@@ -76,57 +73,17 @@ const MenuItem = ({ iconName, label, onPress, showDot = false, isFirst = false, 
   </TouchableOpacity>
 )
 
-// Bottom navigation manager component
-const BottomNav = ({ activeTab, onNavigate }) => (
-  <View style={styles.bottomNav}>
-    <TouchableOpacity style={styles.navItem} onPress={() => onNavigate('home')} activeOpacity={0.7}>
-      <View style={styles.tabIconBackground}>
-        <MaterialCommunityIcons 
-          name={activeTab === 'home' ? 'home' : 'home-outline'} 
-          size={24} 
-          color={activeTab === 'home' ? '#1E3A8A' : '#94A3B8'} 
-        />
-      </View>
-      <Text style={[styles.navLabel, activeTab === 'home' && styles.navLabelActive]}>Home</Text>
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.navItem} onPress={() => onNavigate('active-requests')} activeOpacity={0.7}>
-      <View style={styles.tabIconBackground}>
-        <MaterialCommunityIcons 
-          name="car-multiple" 
-          size={24} 
-          color={activeTab === 'trips' ? '#1E3A8A' : '#94A3B8'} 
-        />
-      </View>
-      <Text style={[styles.navLabel, activeTab === 'trips' && styles.navLabelActive]}>Trips</Text>
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.navItem} onPress={() => onNavigate('profile')} activeOpacity={0.7}>
-      {/* 🌟 FIXED HIGHLIGHT CONTAINER: Soft-blue pill capsule styling perfectly uniform with Home and Trips */}
-      <View style={[styles.tabIconBackground, activeTab === 'profile' && styles.activeTabIconBackground]}>
-        <MaterialCommunityIcons 
-          name={activeTab === 'profile' ? 'account-circle' : 'account-circle-outline'} 
-          size={24} 
-          color={activeTab === 'profile' ? '#1E3A8A' : '#94A3B8'} 
-        />
-      </View>
-      <Text style={[styles.navLabel, activeTab === 'profile' && styles.navLabelActive]}>Profile</Text>
-    </TouchableOpacity>
-  </View>
-)
-
 // Main screen controller
-const DriverProfile = ({ onLogout, onNavigate }) => {
+const DriverProfile = ({ onLogout, onNavigate, driverData }) => {
 
-  // 💡 TODO: BACKEND INTEGRATION — Pull authenticated database record model via custom context hook
-  // const { user } = useAuth()
+  // Dynamic state checks: Uses values coming backward from edits screen context or default mocks
   const user = {
-    name:       'Alex Johnson',
-    email:      'alex.j@university.edu',
+    name:       driverData?.fullName || 'Alex Johnson',
+    email:      driverData?.email || 'alex.j@university.edu',
     rating:     4.9,
     totalTrips: 42,
     tripsToday: 5,
-    avatar:     null, // 💡 TODO: BACKEND INTEGRATION — Switch with live image link (user.avatarUrl)
+    avatar:     driverData?.avatarUri || null, 
     verified:   true,
   }
 
@@ -142,21 +99,18 @@ const DriverProfile = ({ onLogout, onNavigate }) => {
     if (onNavigate) onNavigate('help-support')
   }
 
-  const handleSettings = () => {
+  // REDIRECTS UNBUILT APP SETTINGS: Links directly to standalone App Settings screen
+  const handleAppSettings = () => {
+    if (onNavigate) onNavigate('app-settings')
+  }
+
+  // REDIRECTS AVATARS TAP: Shortcuts straight to EditDriverProfile screen layout
+  const handleEditProfile = () => {
     if (onNavigate) onNavigate('settings')
   }
 
   const handleLogout = () => {
-    // 💡 TODO: BACKEND INTEGRATION — Evict authentication and access tokens from AsyncStorage cache memory 
-    // await AsyncStorage.removeItem('token')
-    // await AsyncStorage.removeItem('user')
     if (onLogout) onLogout()
-  }
-
-  const handleUpdatePhoto = async () => {
-    // 💡 TODO: BACKEND INTEGRATION — Setup expo camera library asset selection and upload to server bucket repository
-    // 1. const result = await ImagePicker.launchImageLibraryAsync({...})
-    // 2. Body: FormData binary payload -> PATCH /api/drivers/me/avatar
   }
 
   return (
@@ -164,9 +118,9 @@ const DriverProfile = ({ onLogout, onNavigate }) => {
       <StatusBar style="dark" />
 
       {/* Top logo header section */}
-      <View style={styles.topBar}>
-        <Text style={styles.topBarLogo}>CampusRide</Text>
-        <TouchableOpacity onPress={handleUpdatePhoto} activeOpacity={0.8}>
+      <View style={styles.header}>
+        <Text style={styles.logoText}>CampusRide</Text>
+        <TouchableOpacity onPress={handleEditProfile} activeOpacity={0.8}>
           {user.avatar ? (
             <Image source={{ uri: user.avatar }} style={styles.topBarAvatar} />
           ) : (
@@ -183,7 +137,7 @@ const DriverProfile = ({ onLogout, onNavigate }) => {
 
         {/* User identification header card layout */}
         <View style={styles.profileSection}>
-          <TouchableOpacity onPress={handleUpdatePhoto} activeOpacity={0.85} style={styles.photoWrap}>
+          <TouchableOpacity onPress={handleEditProfile} activeOpacity={0.85} style={styles.photoWrap}>
             {user.avatar ? (
               <Image source={{ uri: user.avatar }} style={styles.profilePhoto} />
             ) : (
@@ -209,7 +163,7 @@ const DriverProfile = ({ onLogout, onNavigate }) => {
           <MenuItem iconName="clock-outline" label="Ride History" onPress={handleRideHistory} isFirst />
           <MenuItem iconName="bell-outline" label="Notifications" onPress={handleNotifications} showDot />
           <MenuItem iconName="help-circle-outline" label="Help & Support" onPress={handleHelpSupport} />
-          <MenuItem iconName="cog-outline" label="Settings" onPress={handleSettings} isLast />
+          <MenuItem iconName="cog-outline" label="Settings" onPress={handleAppSettings} isLast />
         </View>
 
         {/* Account login termination controller action */}
@@ -220,8 +174,32 @@ const DriverProfile = ({ onLogout, onNavigate }) => {
 
       </ScrollView>
 
-      {/* Persistent platform bottom tabs action menu */}
-      <BottomNav activeTab="profile" onNavigate={(tab) => onNavigate && onNavigate(tab)} />
+      {/* 🌟 5. APP BASE SYSTEM TAB NAV BAR COMPONENT (Exactly Matches DriverHome.js Structure) */}
+      <View style={styles.tabBarContainer}>
+        {/* Home Tab */}
+        <TouchableOpacity style={styles.tabItem} onPress={() => onNavigate && onNavigate('home')} activeOpacity={0.7}>
+          <View style={styles.tabIconBackground}>
+            <MaterialCommunityIcons name="home-outline" size={24} color="#94A3B8" />
+          </View>
+          <Text style={styles.tabLabelText}>Home</Text>
+        </TouchableOpacity>
+
+        {/* Trips Tab */}
+        <TouchableOpacity style={styles.tabItem} onPress={() => onNavigate && onNavigate('active-requests')} activeOpacity={0.7}>
+          <View style={styles.tabIconBackground}>
+            <MaterialCommunityIcons name="car-multiple" size={24} color="#94A3B8" />
+          </View>
+          <Text style={styles.tabLabelText}>Trips</Text>
+        </TouchableOpacity>
+
+        {/* Profile Tab */}
+        <TouchableOpacity style={styles.tabItem} onPress={() => onNavigate && onNavigate('profile')} activeOpacity={0.7}>
+          <View style={[styles.tabIconBackground, styles.activeTabIconBackground]}>
+            <MaterialCommunityIcons name="account-circle" size={24} color="#1E3A8A" />
+          </View>
+          <Text style={[styles.tabLabelText, styles.activeTabLabelText]}>Profile</Text>
+        </TouchableOpacity>
+      </View>
 
     </SafeAreaView>
   )
@@ -230,39 +208,40 @@ const DriverProfile = ({ onLogout, onNavigate }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: '#FFFFFF', // Synchronized to pure white background to blend header line transitions
   },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  topBar: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 12, 
-    paddingBottom: 16,
-    backgroundColor: '#F0F4F8',
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  topBarLogo: {
-    fontSize: 20,
+  logoText: {
+    fontSize: 22,
     fontWeight: '800',
     color: '#1E3A8A',
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
   topBarAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: '#1E3A8A',
   },
   topBarAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#1E3A8A',
     alignItems: 'center',
     justifyContent: 'center',
@@ -270,13 +249,13 @@ const styles = StyleSheet.create({
     borderColor: '#3B82F6',
   },
   topBarAvatarInitials: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: 'white',
   },
   profileSection: {
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: 16,
     paddingBottom: 20,
     gap: 8,
   },
@@ -289,7 +268,7 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 3,
-    borderColor: 'white',
+    borderColor: '#F8FAFC',
   },
   profilePhotoPlaceholder: {
     width: 110,
@@ -299,7 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: 'white',
+    borderColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -474,20 +453,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#EF4444',
   },
-  bottomNav: {
+  
+  // 🌟 SYNCHRONIZED APP FOOTER BOTTOM NAV STYLES (Copied perfectly from DriverHome.js)
+  tabBarContainer: {
     flexDirection: 'row',
+    height: 74,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E8EDF2',
-    paddingBottom: 4, 
-    paddingTop: 12,
-    paddingHorizontal: 12,
+    borderTopColor: '#F1F5F9',
   },
-  navItem: {
+  tabItem: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
+    justifyContent: 'center',
   },
   tabIconBackground: {
     paddingHorizontal: 20,
@@ -501,12 +479,12 @@ const styles = StyleSheet.create({
   activeTabIconBackground: {
     backgroundColor: '#EFF6FF',
   },
-  navLabel: {
+  tabLabelText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#94A3B8',
   },
-  navLabelActive: {
+  activeTabLabelText: {
     color: '#1E3A8A',
     fontWeight: '700',
   },

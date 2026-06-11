@@ -174,30 +174,35 @@ const ActiveRequests = ({ onBack, onChangeTab, onAcceptRide }) => {
 
       </ScrollView>
 
-      {/* 4. BASE SYSTEM TAB NAV BAR COMPONENT */}
+      {/* 🌟 4. APP BASE SYSTEM TAB NAV BAR (Perfectly Synced directly to DriverHome Style Schema) */}
       <View style={styles.tabBarContainer}>
-        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab('home')} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="home-outline" size={24} color="#94A3B8" />
-          <Text style={styles.tabLabelInactive}>Home</Text>
+        {/* Home Tab */}
+        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab && onChangeTab('home')} activeOpacity={0.7}>
+          <View style={styles.tabIconBackground}>
+            <MaterialCommunityIcons name="home-outline" size={24} color="#94A3B8" />
+          </View>
+          <Text style={styles.tabLabelText}>Home</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab('trips')} activeOpacity={0.7}>
-          <View style={styles.activeTabIconBackground}>
+        {/* Trips Tab (Active Highlight state capsule layer applied cleanly) */}
+        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab && onChangeTab('trips')} activeOpacity={0.7}>
+          <View style={[styles.tabIconBackground, styles.activeTabIconBackground]}>
             <MaterialCommunityIcons name="car-multiple" size={24} color="#1E3A8A" />
           </View>
-          <Text style={styles.tabLabelActive}>Trips</Text>
+          <Text style={[styles.tabLabelText, styles.activeTabLabelText]}>Trips</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab('profile')} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="account-circle-outline" size={24} color="#94A3B8" />
-          <Text style={styles.tabLabelInactive}>Profile</Text>
+        {/* Profile Tab */}
+        <TouchableOpacity style={styles.tabItem} onPress={() => onChangeTab && onChangeTab('profile')} activeOpacity={0.7}>
+          <View style={styles.tabIconBackground}>
+            <MaterialCommunityIcons name="account-circle-outline" size={24} color="#94A3B8" />
+          </View>
+          <Text style={styles.tabLabelText}>Profile</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   )
 }
-
-export default ActiveRequests
 
 const styles = StyleSheet.create({
   // Global View Layout Canvas
@@ -451,34 +456,40 @@ const styles = StyleSheet.create({
     color: '#1E3A8A',
   },
 
-  // 4. Base Tab Menu Layout Configuration
+  // 🌟 SYNCHRONIZED APP FOOTER BOTTOM NAV STYLES (Copied perfectly from DriverHome.js)
   tabBarContainer: {
     flexDirection: 'row',
     height: 74,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#F1F5F9',
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeTabIconBackground: {
-    backgroundColor: '#EFF6FF',
+  tabIconBackground: {
     paddingHorizontal: 20,
     paddingVertical: 4,
     borderRadius: 16,
     marginBottom: 2,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabLabelActive: {
-    fontSize: 11,
-    color: '#1E3A8A',
-    fontWeight: '700',
+  activeTabIconBackground: {
+    backgroundColor: '#EFF6FF',
   },
-  tabLabelInactive: {
+  tabLabelText: {
     fontSize: 11,
     fontWeight: '500',
     color: '#94A3B8',
   },
+  activeTabLabelText: {
+    color: '#1E3A8A',
+    fontWeight: '700',
+  },
 })
+
+export default ActiveRequests
